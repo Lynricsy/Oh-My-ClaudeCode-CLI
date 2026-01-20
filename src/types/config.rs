@@ -9,14 +9,10 @@ use std::path::PathBuf;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum AgentType {
-    /// 代码执行者
-    Coder,
     /// 代码审核者（原 Codex）
     Reviewer,
     /// 高阶顾问（原 Gemini）
     Advisor,
-    /// 前端/UI 专家
-    Frontend,
     /// 杂务执行者
     Chore,
     /// 网络研究专家（原 Librarian）
@@ -29,10 +25,8 @@ impl AgentType {
     /// 获取 Agent 名称
     pub fn name(&self) -> &'static str {
         match self {
-            AgentType::Coder => "coder",
             AgentType::Reviewer => "reviewer",
             AgentType::Advisor => "advisor",
-            AgentType::Frontend => "frontend",
             AgentType::Chore => "chore",
             AgentType::Researcher => "researcher",
             AgentType::Looker => "looker",
@@ -42,10 +36,8 @@ impl AgentType {
     /// 获取 Agent 中文名称
     pub fn display_name(&self) -> &'static str {
         match self {
-            AgentType::Coder => "代码执行者",
             AgentType::Reviewer => "代码审核者",
             AgentType::Advisor => "高阶顾问",
-            AgentType::Frontend => "前端/UI 专家",
             AgentType::Chore => "杂务执行者",
             AgentType::Researcher => "网络研究专家",
             AgentType::Looker => "多模态分析专家",
@@ -55,10 +47,8 @@ impl AgentType {
     /// 获取默认的沙箱策略
     pub fn default_sandbox(&self) -> SandboxPolicy {
         match self {
-            AgentType::Coder => SandboxPolicy::WorkspaceWrite,
             AgentType::Reviewer => SandboxPolicy::ReadOnly,
             AgentType::Advisor => SandboxPolicy::WorkspaceWrite,
-            AgentType::Frontend => SandboxPolicy::WorkspaceWrite,
             AgentType::Chore => SandboxPolicy::WorkspaceWrite,
             AgentType::Researcher => SandboxPolicy::ReadOnly,
             AgentType::Looker => SandboxPolicy::ReadOnly,
@@ -68,10 +58,8 @@ impl AgentType {
     /// 获取默认的最大重试次数
     pub fn default_max_retries(&self) -> u32 {
         match self {
-            AgentType::Coder => 0,    // 有写入副作用，默认不重试
             AgentType::Reviewer => 1, // 只读，可安全重试
             AgentType::Advisor => 1,
-            AgentType::Frontend => 1,
             AgentType::Chore => 0, // 有写入副作用，默认不重试
             AgentType::Researcher => 1,
             AgentType::Looker => 1,
@@ -81,10 +69,8 @@ impl AgentType {
     /// 获取默认的空闲超时时间（秒）
     pub fn default_timeout(&self) -> u64 {
         match self {
-            AgentType::Coder => 300,
             AgentType::Reviewer => 300,
             AgentType::Advisor => 300,
-            AgentType::Frontend => 180,
             AgentType::Chore => 120,
             AgentType::Researcher => 120,
             AgentType::Looker => 120,
@@ -94,10 +80,8 @@ impl AgentType {
     /// 获取默认的最大执行时长（秒）
     pub fn default_max_duration(&self) -> u64 {
         match self {
-            AgentType::Coder => 3600,
             AgentType::Reviewer => 1800,
             AgentType::Advisor => 3600,
-            AgentType::Frontend => 3600,
             AgentType::Chore => 600,
             AgentType::Researcher => 3600,
             AgentType::Looker => 3600,
@@ -107,10 +91,8 @@ impl AgentType {
     /// 获取使用的底层 CLI 工具
     pub fn cli_tool(&self) -> CliTool {
         match self {
-            AgentType::Coder => CliTool::Claude,
             AgentType::Reviewer => CliTool::Codex,
             AgentType::Advisor => CliTool::Gemini,
-            AgentType::Frontend => CliTool::Gemini,
             AgentType::Chore => CliTool::Claude,
             AgentType::Researcher => CliTool::Gemini,
             AgentType::Looker => CliTool::Gemini,

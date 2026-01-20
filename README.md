@@ -6,19 +6,17 @@ OMCC 是一个将 AI 多代理协作系统从 MCP 迁移到 CLI 的工具，提�
 
 ## ✨ 特性
 
-- **多代理协作**：7 个专业 Agent 协同工作
-  - **Coder** - 代码执行者
-  - **Reviewer** - 代码审核者（原 Codex）
-  - **Advisor** - 高阶顾问（原 Gemini）
-  - **Frontend** - 前端/UI 专家
-  - **Chore** - 杂务执行者
-  - **Researcher** - 网络研究专家（原 Librarian）
-  - **Looker** - 多模态分析专家
+- **多代理协作**：5 个专业 Agent 协同工作
+  - **Reviewer** - 代码审核者（底层调用 codex CLI）
+  - **Advisor** - 高阶顾问（底层调用 gemini CLI）
+  - **Chore** - 杂务执行者（底层调用 claude CLI）
+  - **Researcher** - 网络研究专家（底层调用 gemini CLI）
+  - **Looker** - 多模态分析专家（底层调用 gemini CLI）
 
 - **结构化输入输出**：JSON 格式，便于程序集成
 - **会话管理**：支持多轮对话，保持上下文
 - **灵活配置**：沙箱策略、超时控制、重试机制
-- **内置指南**：通过 `--xxx-instructions` 获取使用指南
+- **内置 Skill 文档**：通过 `--xxx-instructions` 获取使用指南，供主 AI 学习如何使用
 
 ## 📦 安装
 
@@ -38,11 +36,15 @@ cargo install --path .
 
 ### 依赖
 
-OMCC 需要以下 CLI 工具之一（根据使用的 Agent）：
+OMCC 需要以下 CLI 工具（根据使用的 Agent）：
 
-- [claude](https://github.com/anthropics/claude-code) - Coder、Chore
-- [codex](https://github.com/openai/codex) - Reviewer
-- [gemini](https://github.com/google-gemini/gemini-cli) - Advisor、Frontend、Researcher、Looker
+| Agent | 底层 CLI | 说明 |
+|-------|----------|------|
+| Reviewer | [codex](https://github.com/openai/codex) | OpenAI Codex CLI |
+| Advisor | [gemini](https://github.com/google-gemini/gemini-cli) | Google Gemini CLI |
+| Chore | [claude](https://github.com/anthropics/claude-code) | Anthropic Claude CLI |
+| Researcher | [gemini](https://github.com/google-gemini/gemini-cli) | Google Gemini CLI |
+| Looker | [gemini](https://github.com/google-gemini/gemini-cli) | Google Gemini CLI |
 
 ## 🚀 快速开始
 
@@ -55,9 +57,9 @@ omcc --help
 # 列出所有可用的 Agent
 omcc list
 
-# 获取 Agent 使用指南
-omcc --coder-instructions
+# 获取 Agent 使用指南（skill 文档）
 omcc --reviewer-instructions
+omcc --advisor-instructions
 omcc --workflow
 
 # 获取全局提示词（用于 AI 客户端配置）
@@ -67,49 +69,40 @@ omcc --global-prompt
 ### 调用 Agent
 
 ```bash
-# 调用 Coder 执行代码任务
-omcc coder -C /path/to/project "实现用户登录功能"
-
 # 调用 Reviewer 审核代码
 omcc reviewer -C /path/to/project "请 review src/auth/ 目录的改动"
+
+# 调用 Advisor 获取架构建议
+omcc advisor -C /path/to/project "评估微服务拆分方案"
 
 # 调用 Researcher 查询文档
 omcc researcher -C /path/to/project "React useEffect 最佳实践"
 
-# 从 stdin 读取提示词
-echo "任务描述..." | omcc coder -C /path/to/project --stdin
+# 调用 Looker 分析图片
+omcc looker /path/to/screenshot.png --goal "描述 UI 布局"
 
-# 从文件读取提示词
-omcc coder -C /path/to/project --file task.md
+# 调用 Chore 执行杂务
+omcc chore -C /path/to/project "格式化 src 目录下所有文件"
+
+# 从 stdin 读取提示词
+echo "任务描述..." | omcc reviewer -C /path/to/project --stdin
 
 # JSON 格式输出
-omcc coder -C /path/to/project --json "任务描述..."
+omcc reviewer -C /path/to/project --json "审核任务..."
 
 # 会话复用
-omcc coder -C /path/to/project -S "previous-session-id" "继续上次的任务..."
-```
-
-### 调用 Looker 分析文件
-
-```bash
-# 分析 PDF 文档
-omcc looker /path/to/document.pdf --goal "提取文档中关于用户认证的内容"
-
-# 分析图片
-omcc looker /path/to/screenshot.png --goal "描述 UI 界面的布局"
+omcc reviewer -C /path/to/project -S "previous-session-id" "继续审核..."
 ```
 
 ## 📖 Agent 说明
 
-| Agent | 角色 | 用途 | 沙箱模式 | 默认重试 |
-|-------|------|------|----------|----------|
-| **coder** | 代码执行者 | 生成/修改代码、批量任务 | workspace-write | 0 |
-| **reviewer** | 代码审核者 | 代码 Review、质量把关 | read-only | 1 |
-| **advisor** | 高阶顾问 | 架构设计、第二意见 | workspace-write | 1 |
-| **frontend** | 前端/UI 专家 | 界面设计、样式动效 | workspace-write | 1 |
-| **chore** | 杂务执行者 | 批量操作、格式化 | workspace-write | 0 |
-| **researcher** | 研究专家 | 文档查询、网络搜索 | read-only | 1 |
-| **looker** | 多模态分析 | PDF/图片/图表分析 | read-only | 1 |
+| Agent | 角色 | 用途 | 沙箱模式 | 底层 CLI | 默认重试 |
+|-------|------|------|----------|----------|----------|
+| **reviewer** | 代码审核者 | 代码 Review、质量把关 | read-only | codex | 1 |
+| **advisor** | 高阶顾问 | 架构设计、第二意见、代码执行 | workspace-write | gemini | 1 |
+| **chore** | 杂务执行者 | 批量操作、格式化 | workspace-write | claude | 0 |
+| **researcher** | 研究专家 | 文档查询、网络搜索 | read-only | gemini | 1 |
+| **looker** | 多模态分析 | PDF/图片/图表分析 | read-only | gemini | 1 |
 
 ## ⚙️ 参数说明
 
@@ -128,14 +121,12 @@ omcc looker /path/to/screenshot.png --goal "描述 UI 界面的布局"
 | `--file` | `-f` | 从文件读取提示词 |
 | `--json` | `-j` | JSON 格式输出 |
 
-### 指南输出参数
+### Skill 文档输出参数
 
 | 参数 | 说明 |
 |------|------|
-| `--coder-instructions` | 输出 Coder 使用指南 |
 | `--reviewer-instructions` | 输出 Reviewer 使用指南 |
 | `--advisor-instructions` | 输出 Advisor 使用指南 |
-| `--frontend-instructions` | 输出 Frontend 使用指南 |
 | `--chore-instructions` | 输出 Chore 使用指南 |
 | `--researcher-instructions` | 输出 Researcher 使用指南 |
 | `--looker-instructions` | 输出 Looker 使用指南 |
@@ -149,10 +140,10 @@ omcc looker /path/to/screenshot.png --goal "描述 UI 界面的布局"
 ```json
 {
   "status": "success",
-  "agent": "coder",
+  "agent": "reviewer",
   "SESSION_ID": "uuid-string",
   "result": "执行结果内容",
-  "duration": "1m30s"
+  "duration": "0m45s"
 }
 ```
 
@@ -161,7 +152,7 @@ omcc looker /path/to/screenshot.png --goal "描述 UI 界面的布局"
 ```json
 {
   "status": "failure",
-  "agent": "coder",
+  "agent": "reviewer",
   "error": "错误摘要",
   "error_kind": "idle_timeout",
   "error_detail": {
@@ -169,20 +160,39 @@ omcc looker /path/to/screenshot.png --goal "描述 UI 界面的布局"
     "exit_code": 1,
     "last_lines": ["最后几行输出..."],
     "idle_timeout_s": 300,
-    "retries": 0
+    "retries": 1
   }
 }
 ```
 
 ## 🔧 与 AI 客户端集成
 
-OMCC 设计为易于与各种 AI 客户端集成。获取全局提示词：
+OMCC 设计为易于与各种 AI 客户端集成。
+
+### 获取全局提示词
 
 ```bash
 omcc --global-prompt > system_prompt.md
 ```
 
 将此提示词添加到你的 AI 客户端的系统提示中，AI 将了解如何使用 OMCC CLI 进行多代理协作。
+
+### 获取 Skill 文档
+
+```bash
+# 获取特定 Agent 的 skill 文档
+omcc --reviewer-instructions > reviewer_skill.md
+```
+
+将 skill 文档提供给主 AI，让它学习如何正确调用对应的 Agent。
+
+## 🔗 与原有 MCP 环境兼容
+
+OMCC CLI 与原有的 Oh-My-ClaudeCode MCP 使用相同的底层 CLI 工具：
+
+- 如果你已经配置好了 `codex`、`gemini`、`claude` CLI，OMCC 可以直接使用
+- 无需重新配置认证或 API Key
+- 会话管理和沙箱策略与 MCP 版本一致
 
 ## 📜 License
 
@@ -193,3 +203,4 @@ MIT License
 - 原项目 [Oh-My-ClaudeCode](https://github.com/Lynricsy/Oh-My-ClaudeCode)
 - [Claude Code](https://github.com/anthropics/claude-code)
 - [Gemini CLI](https://github.com/google-gemini/gemini-cli)
+- [Codex CLI](https://github.com/openai/codex)

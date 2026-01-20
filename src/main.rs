@@ -10,43 +10,35 @@ use clap::Parser;
 
 use omcc::agents::AgentExecutor;
 use omcc::cli::{
-    AdvisorArgs, ChoreArgs, Cli, CoderArgs, Commands, CommonAgentArgs, FrontendArgs, LookerArgs,
-    ResearcherArgs, ReviewerArgs,
+    AdvisorArgs, ChoreArgs, Cli, Commands, CommonAgentArgs, LookerArgs, ResearcherArgs,
+    ReviewerArgs,
 };
-use omcc::instructions::{get_global_prompt, get_instructions, get_workflow_instructions};
+use omcc::instructions::{get_agent_skill, get_global_prompt, get_workflow_instructions};
 use omcc::types::{AgentConfig, AgentResult, AgentType};
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    // 处理指导内容输出
-    if cli.coder_instructions {
-        print_instructions(AgentType::Coder, cli.json_output);
-        return Ok(());
-    }
+    // 处理指导内容输出（skill 文档，给主 AI 使用）
     if cli.reviewer_instructions {
-        print_instructions(AgentType::Reviewer, cli.json_output);
+        println!("{}", get_agent_skill(AgentType::Reviewer));
         return Ok(());
     }
     if cli.advisor_instructions {
-        print_instructions(AgentType::Advisor, cli.json_output);
-        return Ok(());
-    }
-    if cli.frontend_instructions {
-        print_instructions(AgentType::Frontend, cli.json_output);
+        println!("{}", get_agent_skill(AgentType::Advisor));
         return Ok(());
     }
     if cli.chore_instructions {
-        print_instructions(AgentType::Chore, cli.json_output);
+        println!("{}", get_agent_skill(AgentType::Chore));
         return Ok(());
     }
     if cli.researcher_instructions {
-        print_instructions(AgentType::Researcher, cli.json_output);
+        println!("{}", get_agent_skill(AgentType::Researcher));
         return Ok(());
     }
     if cli.looker_instructions {
-        print_instructions(AgentType::Looker, cli.json_output);
+        println!("{}", get_agent_skill(AgentType::Looker));
         return Ok(());
     }
     if cli.workflow {
@@ -60,9 +52,6 @@ async fn main() -> Result<()> {
 
     // 处理子命令
     match cli.command {
-        Some(Commands::Coder(args)) => {
-            execute_agent(AgentType::Coder, build_coder_config(args)?, cli.json_output).await
-        }
         Some(Commands::Reviewer(args)) => {
             execute_agent(
                 AgentType::Reviewer,
@@ -75,14 +64,6 @@ async fn main() -> Result<()> {
             execute_agent(
                 AgentType::Advisor,
                 build_advisor_config(args)?,
-                cli.json_output,
-            )
-            .await
-        }
-        Some(Commands::Frontend(args)) => {
-            execute_agent(
-                AgentType::Frontend,
-                build_frontend_config(args)?,
                 cli.json_output,
             )
             .await
@@ -116,41 +97,8 @@ async fn main() -> Result<()> {
         }
         None => {
             // 没有子命令时显示帮助
-            println!("{}", include_str!("instructions/global_prompt.md"));
+            println!("{}", get_global_prompt());
             Ok(())
-        }
-    }
-}
-
-/// 打印 Agent 使用指南
-fn print_instructions(agent_type: AgentType, json_output: bool) {
-    let instructions = get_instructions(agent_type);
-    if json_output {
-        println!("{}", serde_json::to_string_pretty(&instructions).unwrap());
-    } else {
-        println!("# {} ({})", instructions.display_name, instructions.agent);
-        println!();
-        println!("## 角色定位");
-        println!("{}", instructions.role);
-        println!();
-        println!("## 使用场景");
-        for case in &instructions.use_cases {
-            println!("- {}", case);
-        }
-        println!();
-        println!("## Prompt 模板");
-        println!("```");
-        println!("{}", instructions.prompt_template);
-        println!("```");
-        println!();
-        println!("## 返回值格式");
-        println!("```json");
-        println!("{}", instructions.return_format);
-        println!("```");
-        println!();
-        println!("## 注意事项");
-        for note in &instructions.notes {
-            println!("- {}", note);
         }
     }
 }
@@ -208,10 +156,8 @@ fn output_result(result: &AgentResult, json_output: bool) {
 /// 打印 Agent 列表
 fn print_agent_list(json_output: bool) {
     let agents = vec![
-        AgentType::Coder,
         AgentType::Reviewer,
         AgentType::Advisor,
-        AgentType::Frontend,
         AgentType::Chore,
         AgentType::Researcher,
         AgentType::Looker,
@@ -228,6 +174,7 @@ fn print_agent_list(json_output: bool) {
                     "max_retries": a.default_max_retries(),
                     "timeout": a.default_timeout(),
                     "max_duration": a.default_max_duration(),
+                    "cli_tool": a.cli_tool().command(),
                 })
             })
             .collect();
@@ -236,17 +183,17 @@ fn print_agent_list(json_output: bool) {
         println!("可用的 Agent 列表：");
         println!();
         println!(
-            "{:<12} {:<16} {:<18} {:<8} {:<8}",
-            "名称", "中文名", "沙箱模式", "超时(s)", "重试"
+            "{:<12} {:<16} {:<18} {:<10} {:<8}",
+            "名称", "中文名", "沙箱模式", "底层CLI", "重试"
         );
         println!("{}", "-".repeat(70));
         for agent in agents {
             println!(
-                "{:<12} {:<16} {:<18} {:<8} {:<8}",
+                "{:<12} {:<16} {:<18} {:<10} {:<8}",
                 agent.name(),
                 agent.display_name(),
                 agent.default_sandbox().as_arg(),
-                agent.default_timeout(),
+                agent.cli_tool().command(),
                 agent.default_max_retries()
             );
         }
@@ -293,15 +240,6 @@ fn read_prompt(
     }
 }
 
-/// 构建 Coder 配置
-fn build_coder_config(args: CoderArgs) -> Result<AgentConfig> {
-    let prompt = read_prompt(args.prompt, args.from_stdin, args.from_file)?;
-    let working_dir = args.common.working_dir.clone();
-    let mut config = AgentConfig::new(AgentType::Coder, prompt, working_dir);
-    apply_common_args(&mut config, &args.common);
-    Ok(config)
-}
-
 /// 构建 Reviewer 配置
 fn build_reviewer_config(args: ReviewerArgs) -> Result<AgentConfig> {
     let prompt = read_prompt(args.prompt, args.from_stdin, args.from_file)?;
@@ -320,15 +258,6 @@ fn build_advisor_config(args: AdvisorArgs) -> Result<AgentConfig> {
     let prompt = read_prompt(args.prompt, args.from_stdin, args.from_file)?;
     let working_dir = args.common.working_dir.clone();
     let mut config = AgentConfig::new(AgentType::Advisor, prompt, working_dir);
-    apply_common_args(&mut config, &args.common);
-    Ok(config)
-}
-
-/// 构建 Frontend 配置
-fn build_frontend_config(args: FrontendArgs) -> Result<AgentConfig> {
-    let prompt = read_prompt(args.prompt, args.from_stdin, args.from_file)?;
-    let working_dir = args.common.working_dir.clone();
-    let mut config = AgentConfig::new(AgentType::Frontend, prompt, working_dir);
     apply_common_args(&mut config, &args.common);
     Ok(config)
 }

@@ -17,31 +17,23 @@ pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Commands>,
 
-    /// 输出 Coder Agent 使用指南
-    #[arg(long = "coder-instructions", global = true)]
-    pub coder_instructions: bool,
-
-    /// 输出 Reviewer Agent 使用指南
+    /// 输出 Reviewer Agent 使用指南（给主 AI 的 skill 文档）
     #[arg(long = "reviewer-instructions", global = true)]
     pub reviewer_instructions: bool,
 
-    /// 输出 Advisor Agent 使用指南
+    /// 输出 Advisor Agent 使用指南（给主 AI 的 skill 文档）
     #[arg(long = "advisor-instructions", global = true)]
     pub advisor_instructions: bool,
 
-    /// 输出 Frontend Agent 使用指南
-    #[arg(long = "frontend-instructions", global = true)]
-    pub frontend_instructions: bool,
-
-    /// 输出 Chore Agent 使用指南
+    /// 输出 Chore Agent 使用指南（给主 AI 的 skill 文档）
     #[arg(long = "chore-instructions", global = true)]
     pub chore_instructions: bool,
 
-    /// 输出 Researcher Agent 使用指南
+    /// 输出 Researcher Agent 使用指南（给主 AI 的 skill 文档）
     #[arg(long = "researcher-instructions", global = true)]
     pub researcher_instructions: bool,
 
-    /// 输出 Looker Agent 使用指南
+    /// 输出 Looker Agent 使用指南（给主 AI 的 skill 文档）
     #[arg(long = "looker-instructions", global = true)]
     pub looker_instructions: bool,
 
@@ -61,10 +53,6 @@ pub struct Cli {
 /// 子命令定义
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// 调用 Coder 执行代码生成或修改任务
-    #[command(name = "coder")]
-    Coder(CoderArgs),
-
     /// 调用 Reviewer 进行代码审核
     #[command(name = "reviewer")]
     Reviewer(ReviewerArgs),
@@ -72,10 +60,6 @@ pub enum Commands {
     /// 调用 Advisor 进行技术咨询或代码执行
     #[command(name = "advisor")]
     Advisor(AdvisorArgs),
-
-    /// 调用 Frontend 进行前端/UI 开发
-    #[command(name = "frontend")]
-    Frontend(FrontendArgs),
 
     /// 调用 Chore 执行杂务任务
     #[command(name = "chore")]
@@ -166,25 +150,6 @@ pub struct CommonAgentArgs {
     pub model: Option<String>,
 }
 
-/// Coder Agent 参数
-#[derive(Args, Debug)]
-pub struct CoderArgs {
-    /// 任务提示词（从 stdin 读取时可省略）
-    #[arg(value_name = "PROMPT")]
-    pub prompt: Option<String>,
-
-    /// 从 stdin 读取提示词
-    #[arg(long = "stdin", short = 'i')]
-    pub from_stdin: bool,
-
-    /// 从文件读取提示词
-    #[arg(long = "file", short = 'f')]
-    pub from_file: Option<PathBuf>,
-
-    #[command(flatten)]
-    pub common: CommonAgentArgs,
-}
-
 /// Reviewer Agent 参数
 #[derive(Args, Debug)]
 pub struct ReviewerArgs {
@@ -224,25 +189,6 @@ pub struct ReviewerArgs {
 #[derive(Args, Debug)]
 pub struct AdvisorArgs {
     /// 任务提示词（从 stdin 读取时可省略）
-    #[arg(value_name = "PROMPT")]
-    pub prompt: Option<String>,
-
-    /// 从 stdin 读取提示词
-    #[arg(long = "stdin", short = 'i')]
-    pub from_stdin: bool,
-
-    /// 从文件读取提示词
-    #[arg(long = "file", short = 'f')]
-    pub from_file: Option<PathBuf>,
-
-    #[command(flatten)]
-    pub common: CommonAgentArgs,
-}
-
-/// Frontend Agent 参数
-#[derive(Args, Debug)]
-pub struct FrontendArgs {
-    /// 前端/UI 任务描述（从 stdin 读取时可省略）
     #[arg(value_name = "PROMPT")]
     pub prompt: Option<String>,
 

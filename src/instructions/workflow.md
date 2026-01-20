@@ -2,31 +2,27 @@
 
 ## 角色分工
 
-| 角色 | 定位 | 用途 | 沙箱模式 | 默认重试 |
-|------|------|------|----------|----------|
-| **Coder** | 代码执行者 | 生成/修改代码、批量任务 | workspace-write | 0 |
-| **Reviewer** | 代码审核者 | 代码 Review、质量把关 | read-only | 1 |
-| **Advisor** | 高阶顾问 | 架构设计、第二意见 | workspace-write | 1 |
-| **Frontend** | 前端/UI 专家 | 界面设计、样式动效 | workspace-write | 1 |
-| **Chore** | 杂务执行者 | 批量操作、格式化 | workspace-write | 0 |
-| **Researcher** | 研究专家 | 文档查询、网络搜索 | read-only | 1 |
-| **Looker** | 多模态分析 | PDF/图片/图表分析 | read-only | 1 |
+| 角色 | 定位 | 用途 | 沙箱模式 | CLI 工具 | 默认重试 |
+|------|------|------|----------|----------|----------|
+| **Reviewer** | 代码审核者 | 代码 Review、质量把关 | read-only | codex | 1 |
+| **Advisor** | 高阶顾问 | 架构设计、第二意见、代码执行 | workspace-write | gemini | 1 |
+| **Chore** | 杂务执行者 | 批量操作、格式化 | workspace-write | claude | 0 |
+| **Researcher** | 研究专家 | 文档查询、网络搜索 | read-only | gemini | 1 |
+| **Looker** | 多模态分析 | PDF/图片/图表分析 | read-only | gemini | 1 |
 
 ## 代理选择指南
 
 ```
 用户需求
     │
-    ├─ 代码改动 ──────────────────┬─ 复杂功能实现 → Coder
-    │                            ├─ 前端/UI 开发 → Frontend
-    │                            └─ 简单批量操作 → Chore
-    │
     ├─ 代码审核 ─────────────────── Reviewer
     │
     ├─ 研究/咨询 ────────────────┬─ 架构设计/第二意见 → Advisor
     │                            └─ 网络研究 → Researcher
     │
-    └─ 文件分析 ─────────────────── PDF/图片/图表 → Looker
+    ├─ 文件分析 ─────────────────── PDF/图片/图表 → Looker
+    │
+    └─ 杂务任务 ─────────────────── 批量操作 → Chore
 ```
 
 ## 核心流程
@@ -35,17 +31,17 @@
 
 根据任务类型选择合适的代理。
 
-### 2. 编写 Prompt
+### 2. 获取使用指南
 
-> ⚠️ **一次调用，一个目标**。禁止向代理堆砌多个不相关需求。
+调用前先获取对应的 skill 文档：
 
-**Prompt 核心要素**：
-- **任务目标**：一句话说明要完成什么
-- **背景上下文**：技术栈、相关文件、参考实现
-- **具体步骤**：分步骤列出要做的事情
-- **约束条件**：不要修改的文件、必须遵守的规则
-- **潜在陷阱**：你知道的可能出问题的地方
-- **交付标准**：可验证的完成检查点
+```bash
+omcc --reviewer-instructions
+omcc --advisor-instructions
+omcc --chore-instructions
+omcc --researcher-instructions
+omcc --looker-instructions
+```
 
 ### 3. 执行与验收
 
@@ -64,36 +60,16 @@
 
 **SESSION_ID 规范**：
 - 必须保存返回的 `SESSION_ID`
-- 后续请求中携带以保持上下文
+- 后续请求中携带 `-S` 参数保持上下文
 - 各角色的 SESSION_ID 相互独立
 - 严禁自创 ID 或混用不同角色的 ID
 
 ## 使用示例
 
-### 调用 Coder 执行代码任务
-
-```bash
-omcc coder --cd /path/to/project "
-**任务目标**：实现用户登录功能
-
-**目标文件**：src/auth/login.ts
-
-**具体要求**：
-1. 创建登录表单组件
-2. 实现登录 API 调用
-3. 处理登录状态
-
-**交付标准**：
-- [ ] 登录表单正常渲染
-- [ ] API 调用成功返回 token
-- [ ] 错误处理完善
-"
-```
-
 ### 调用 Reviewer 审核代码
 
 ```bash
-omcc reviewer --cd /path/to/project "
+omcc reviewer -C /path/to/project "
 请 review 以下代码改动：
 
 **改动文件**：src/auth/login.ts
@@ -106,12 +82,44 @@ omcc reviewer --cd /path/to/project "
 "
 ```
 
+### 调用 Advisor 获取建议
+
+```bash
+omcc advisor -C /path/to/project "
+请评估以下架构方案：
+
+**当前状态**：单体应用
+**目标**：拆分为微服务
+
+**请给出**：
+1. 可行性分析
+2. 风险评估
+3. 实施建议
+"
+```
+
 ### 调用 Researcher 查询文档
 
 ```bash
-omcc researcher --cd /path/to/project "
+omcc researcher -C /path/to/project "
 请查询 React useEffect 的最佳实践，
 特别是清理副作用的正确方式。
+"
+```
+
+### 调用 Looker 分析文件
+
+```bash
+omcc looker /path/to/architecture.png --goal "
+解释这个系统架构图的组件关系和数据流向
+"
+```
+
+### 调用 Chore 执行杂务
+
+```bash
+omcc chore -C /path/to/project "
+将所有 .js 文件重命名为 .ts
 "
 ```
 
@@ -129,3 +137,17 @@ omcc researcher --cd /path/to/project "
 | `--stdin` | `-i` | 从 stdin 读取提示词 |
 | `--file` | `-f` | 从文件读取提示词 |
 | `--json` | `-j` | JSON 格式输出 |
+
+## 底层 CLI 工具
+
+OMCC 依赖以下已安装的 CLI 工具：
+
+| Agent | CLI 工具 | 安装检查 |
+|-------|----------|----------|
+| Reviewer | codex | `which codex` |
+| Advisor | gemini | `which gemini` |
+| Chore | claude | `which claude` |
+| Researcher | gemini | `which gemini` |
+| Looker | gemini | `which gemini` |
+
+确保这些工具已正确安装并配置好认证。

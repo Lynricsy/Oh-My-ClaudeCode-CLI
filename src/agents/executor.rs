@@ -252,7 +252,7 @@ impl AgentExecutor {
                     cmd.arg("--image").arg(file_path);
                 }
             }
-            AgentType::Advisor | AgentType::Frontend | AgentType::Researcher => {
+            AgentType::Advisor | AgentType::Researcher => {
                 // Gemini CLI 特定参数
                 cmd.arg("--yolo"); // 默认跳过审批
             }
@@ -271,10 +271,8 @@ impl AgentExecutor {
     /// 获取 Agent 的系统提示词
     fn get_system_prompt(&self) -> String {
         match self.config.agent_type {
-            AgentType::Coder => include_str!("../instructions/coder_system.txt").to_string(),
             AgentType::Reviewer => include_str!("../instructions/reviewer_system.txt").to_string(),
             AgentType::Advisor => include_str!("../instructions/advisor_system.txt").to_string(),
-            AgentType::Frontend => include_str!("../instructions/frontend_system.txt").to_string(),
             AgentType::Chore => include_str!("../instructions/chore_system.txt").to_string(),
             AgentType::Researcher => {
                 include_str!("../instructions/researcher_system.txt").to_string()
