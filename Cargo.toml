@@ -1,0 +1,29 @@
+[package]
+name = "omcc"
+version = "0.1.0"
+edition = "2021"
+authors = ["Wine Fox <fox@ling.plus>"]
+description = "Oh-My-ClaudeCode CLI - AI 多代理协作命令行工具"
+repository = "https://github.com/Lynricsy/Oh-My-ClaudeCode-CLI"
+license = "MIT"
+keywords = ["ai", "cli", "claude", "gemini", "agent"]
+categories = ["command-line-utilities", "development-tools"]
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive", "env"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+tokio = { version = "1.49", features = ["full"] }
+uuid = { version = "1.0", features = ["v4"] }
+
+[[bin]]
+name = "omcc"
+path = "src/main.rs"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

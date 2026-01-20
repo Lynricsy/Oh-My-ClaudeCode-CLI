@@ -1,0 +1,33 @@
+# Rust
+/target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 环境文件
+.env
+.env.local
+.env.*.local
+
+# 日志
+*.log
+logs/
+
+# Agent 日志
+AgentLogs/
+
+# 临时文件
+*.tmp
+*.temp
+.cache/
