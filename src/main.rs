@@ -241,11 +241,17 @@ fn read_prompt(
 }
 
 /// 构建 Reviewer 配置
+/// 注意：Reviewer 的超时时间固定为 300s（空闲）和 7200s（总时长），不允许外部修改
 fn build_reviewer_config(args: ReviewerArgs) -> Result<AgentConfig> {
     let prompt = read_prompt(args.prompt, args.from_stdin, args.from_file)?;
     let working_dir = args.common.working_dir.clone();
     let mut config = AgentConfig::new(AgentType::Reviewer, prompt, working_dir);
     apply_common_args(&mut config, &args.common);
+    
+    // Reviewer 超时时间锁死，忽略用户传入的值（与原项目一致）
+    config.timeout = None;      // 使用默认值 300s
+    config.max_duration = None; // 使用默认值 7200s
+    
     config.images = args.images;
     config.skip_git_repo_check = args.skip_git_repo_check;
     config.yolo = args.yolo;
