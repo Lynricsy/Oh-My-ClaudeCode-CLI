@@ -71,6 +71,20 @@ impl AgentExecutor {
         let cli_tool = self.config.agent_type.cli_tool();
         let mut cmd = self.build_command(cli_tool)?;
 
+        // 构建完整的 prompt（包含系统引导提示词）
+        let full_prompt = self.build_full_prompt();
+
+        // 根据 CLI 工具类型决定如何传递 prompt
+        match cli_tool {
+            CliTool::OpenCode => {
+                // OpenCode CLI: prompt 作为命令行参数
+                cmd.arg("--").arg(&full_prompt);
+            }
+            CliTool::Codex | CliTool::Claude => {
+                // Codex/Claude CLI: prompt 通过 stdin 传递
+            }
+        }
+
         // 启动子进程
         let mut child = cmd
             .stdout(Stdio::piped())
@@ -85,15 +99,20 @@ impl AgentExecutor {
                 }
             })?;
 
-        // 写入提示词到 stdin
-        if let Some(stdin) = child.stdin.take() {
-            let prompt = self.config.prompt.clone();
-            tokio::spawn(async move {
-                use tokio::io::AsyncWriteExt;
-                let mut stdin = stdin;
-                let _ = stdin.write_all(prompt.as_bytes()).await;
-                let _ = stdin.shutdown().await;
-            });
+        // 对于 Codex/Claude CLI，通过 stdin 传递 prompt
+        if cli_tool != CliTool::OpenCode {
+            if let Some(stdin) = child.stdin.take() {
+                let prompt = full_prompt.clone();
+                tokio::spawn(async move {
+                    use tokio::io::AsyncWriteExt;
+                    let mut stdin = stdin;
+                    let _ = stdin.write_all(prompt.as_bytes()).await;
+                    let _ = stdin.shutdown().await;
+                });
+            }
+        } else {
+            // OpenCode CLI 不需要 stdin
+            drop(child.stdin.take());
         }
 
         // 读取输出
@@ -211,32 +230,21 @@ impl AgentExecutor {
         // 设置工作目录
         cmd.current_dir(&self.config.working_dir);
 
-        // 通用参数
-        cmd.arg("--print");
-        cmd.arg("--output-format").arg("stream-json");
+        // 根据不同的 CLI 工具设置不同的参数格式
+        match cli_tool {
+            CliTool::Codex => {
+                // codex exec --sandbox xxx --cd xxx --json
+                cmd.arg("exec");
+                cmd.arg("--sandbox").arg(self.config.sandbox.as_arg());
+                cmd.arg("--cd").arg(&self.config.working_dir);
+                cmd.arg("--json");
 
-        // 沙箱策略
-        cmd.arg("--sandbox").arg(self.config.sandbox.as_arg());
-
-        // 会话 ID
-        if let Some(ref session_id) = self.config.session_id {
-            cmd.arg("--resume").arg(session_id);
-        }
-
-        // 模型
-        if let Some(ref model) = self.config.model {
-            cmd.arg("--model").arg(model);
-        }
-
-        // 根据 Agent 类型添加特定参数
-        match self.config.agent_type {
-            AgentType::Reviewer => {
                 // Codex 特定参数
                 if self.config.skip_git_repo_check {
                     cmd.arg("--skip-git-repo-check");
                 }
                 if self.config.yolo {
-                    cmd.arg("--dangerously-skip-permissions");
+                    cmd.arg("--yolo");
                 }
                 if let Some(ref profile) = self.config.profile {
                     cmd.arg("--profile").arg(profile);
@@ -245,40 +253,73 @@ impl AgentExecutor {
                 for image in &self.config.images {
                     cmd.arg("--image").arg(image);
                 }
-            }
-            AgentType::Looker => {
-                // Looker 需要分析文件
-                if let Some(ref file_path) = self.config.file_path {
-                    cmd.arg("--image").arg(file_path);
+                // 会话复用
+                if let Some(ref session_id) = self.config.session_id {
+                    cmd.arg("resume").arg(session_id);
                 }
             }
-            AgentType::Advisor | AgentType::Researcher => {
-                // Gemini CLI 特定参数
-                cmd.arg("--yolo"); // 默认跳过审批
-            }
-            _ => {}
-        }
+            CliTool::OpenCode => {
+                // opencode run --format json [--model xxx] message
+                cmd.arg("run");
+                cmd.arg("--format").arg("json");
 
-        // 添加系统提示词（根据 Agent 类型）
-        let system_prompt = self.get_system_prompt();
-        if !system_prompt.is_empty() {
-            cmd.arg("--system-prompt").arg(system_prompt);
+                // 模型
+                if let Some(ref model) = self.config.model {
+                    cmd.arg("--model").arg(model);
+                }
+
+                // Looker 需要分析文件（通过 --image 参数）
+                if self.config.agent_type == AgentType::Looker {
+                    if let Some(ref file_path) = self.config.file_path {
+                        cmd.arg("--image").arg(file_path);
+                    }
+                }
+            }
+            CliTool::Claude => {
+                // claude -p --output-format stream-json --sandbox xxx
+                cmd.arg("-p");
+                cmd.arg("--output-format").arg("stream-json");
+                cmd.arg("--sandbox").arg(self.config.sandbox.as_arg());
+
+                // 模型
+                if let Some(ref model) = self.config.model {
+                    cmd.arg("--model").arg(model);
+                }
+
+                // 会话复用
+                if let Some(ref session_id) = self.config.session_id {
+                    cmd.arg("--resume").arg(session_id);
+                }
+            }
         }
 
         Ok(cmd)
     }
 
-    /// 获取 Agent 的系统提示词
-    fn get_system_prompt(&self) -> String {
+    /// 获取 Agent 的引导提示词（追加到用户 prompt 后面）
+    fn get_guidance_prompt(&self) -> &'static str {
         match self.config.agent_type {
-            AgentType::Reviewer => include_str!("../instructions/reviewer_system.txt").to_string(),
-            AgentType::Advisor => include_str!("../instructions/advisor_system.txt").to_string(),
-            AgentType::Chore => include_str!("../instructions/chore_system.txt").to_string(),
-            AgentType::Researcher => {
-                include_str!("../instructions/researcher_system.txt").to_string()
-            }
-            AgentType::Looker => include_str!("../instructions/looker_system.txt").to_string(),
+            AgentType::Reviewer => include_str!("../instructions/reviewer_system.txt"),
+            AgentType::Advisor => include_str!("../instructions/advisor_system.txt"),
+            AgentType::Chore => include_str!("../instructions/chore_system.txt"),
+            AgentType::Researcher => include_str!("../instructions/researcher_system.txt"),
+            AgentType::Looker => include_str!("../instructions/looker_system.txt"),
         }
+    }
+
+    /// 构建完整的 prompt（用户 prompt + 引导提示词）
+    fn build_full_prompt(&self) -> String {
+        let guidance = self.get_guidance_prompt();
+        format!(
+            "{}\n\n---\n\n**最终回复要求**：在你的最终回复中，必须包含完整的工作总结：\n\
+            1. **执行过程**：简述你做了哪些操作\n\
+            2. **关键决策**：解释为什么选择这种方案\n\
+            3. **最终结果**：描述完成的效果或结论\n\
+            4. **后续建议**：如有进一步优化空间，给出建议\n\n\
+            这样做的原因：调用你的上层 AI 只能看到你的最终回复，无法看到中间的执行过程。\n\n\
+            ---\n\n{}",
+            self.config.prompt, guidance
+        )
     }
 
     /// 判断是否应该重试

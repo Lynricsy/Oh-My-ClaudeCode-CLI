@@ -5,10 +5,10 @@
 | 角色 | 定位 | 用途 | 沙箱模式 | CLI 工具 | 默认重试 |
 |------|------|------|----------|----------|----------|
 | **Reviewer** | 代码审核者 | 代码 Review、质量把关 | read-only | codex | 1 |
-| **Advisor** | 高阶顾问 | 架构设计、第二意见、代码执行 | workspace-write | gemini | 1 |
-| **Chore** | 杂务执行者 | 批量操作、格式化 | workspace-write | claude | 0 |
-| **Researcher** | 研究专家 | 文档查询、网络搜索 | read-only | gemini | 1 |
-| **Looker** | 多模态分析 | PDF/图片/图表分析 | read-only | gemini | 1 |
+| **Advisor** | 高阶顾问 | 架构设计、第二意见、代码执行 | workspace-write | opencode | 1 |
+| **Chore** | 杂务执行者 | 批量操作、格式化 | workspace-write | opencode | 0 |
+| **Researcher** | 研究专家 | 文档查询、网络搜索 | read-only | opencode | 1 |
+| **Looker** | 多模态分析 | PDF/图片/图表分析 | read-only | opencode | 1 |
 
 ## 代理选择指南
 
@@ -145,9 +145,9 @@ OMCC 依赖以下已安装的 CLI 工具：
 | Agent | CLI 工具 | 安装检查 |
 |-------|----------|----------|
 | Reviewer | codex | `which codex` |
-| Advisor | gemini | `which gemini` |
-| Chore | claude | `which claude` |
-| Researcher | gemini | `which gemini` |
-| Looker | gemini | `which gemini` |
+| Advisor | opencode | `which opencode` |
+| Chore | opencode | `which opencode` |
+| Researcher | opencode | `which opencode` |
+| Looker | opencode | `which opencode` |
 
 确保这些工具已正确安装并配置好认证。

@@ -8,10 +8,10 @@ OMCC 是一个将 AI 多代理协作系统从 MCP 迁移到 CLI 的工具，提�
 
 - **多代理协作**：5 个专业 Agent 协同工作
   - **Reviewer** - 代码审核者（底层调用 codex CLI）
-  - **Advisor** - 高阶顾问（底层调用 gemini CLI）
-  - **Chore** - 杂务执行者（底层调用 claude CLI）
-  - **Researcher** - 网络研究专家（底层调用 gemini CLI）
-  - **Looker** - 多模态分析专家（底层调用 gemini CLI）
+  - **Advisor** - 高阶顾问（底层调用 opencode CLI）
+  - **Chore** - 杂务执行者（底层调用 opencode CLI）
+  - **Researcher** - 网络研究专家（底层调用 opencode CLI）
+  - **Looker** - 多模态分析专家（底层调用 opencode CLI）
 
 - **结构化输入输出**：JSON 格式，便于程序集成
 - **会话管理**：支持多轮对话，保持上下文
@@ -41,10 +41,10 @@ OMCC 需要以下 CLI 工具（根据使用的 Agent）：
 | Agent | 底层 CLI | 说明 |
 |-------|----------|------|
 | Reviewer | [codex](https://github.com/openai/codex) | OpenAI Codex CLI |
-| Advisor | [gemini](https://github.com/google-gemini/gemini-cli) | Google Gemini CLI |
-| Chore | [claude](https://github.com/anthropics/claude-code) | Anthropic Claude CLI |
-| Researcher | [gemini](https://github.com/google-gemini/gemini-cli) | Google Gemini CLI |
-| Looker | [gemini](https://github.com/google-gemini/gemini-cli) | Google Gemini CLI |
+| Advisor | [opencode](https://opencode.ai) | OpenCode CLI |
+| Chore | [opencode](https://opencode.ai) | OpenCode CLI |
+| Researcher | [opencode](https://opencode.ai) | OpenCode CLI |
+| Looker | [opencode](https://opencode.ai) | OpenCode CLI |
 
 ## 🚀 快速开始
 
@@ -99,10 +99,10 @@ omcc reviewer -C /path/to/project -S "previous-session-id" "继续审核..."
 | Agent | 角色 | 用途 | 沙箱模式 | 底层 CLI | 默认重试 |
 |-------|------|------|----------|----------|----------|
 | **reviewer** | 代码审核者 | 代码 Review、质量把关 | read-only | codex | 1 |
-| **advisor** | 高阶顾问 | 架构设计、第二意见、代码执行 | workspace-write | gemini | 1 |
-| **chore** | 杂务执行者 | 批量操作、格式化 | workspace-write | claude | 0 |
-| **researcher** | 研究专家 | 文档查询、网络搜索 | read-only | gemini | 1 |
-| **looker** | 多模态分析 | PDF/图片/图表分析 | read-only | gemini | 1 |
+| **advisor** | 高阶顾问 | 架构设计、第二意见、代码执行 | workspace-write | opencode | 1 |
+| **chore** | 杂务执行者 | 批量操作、格式化 | workspace-write | opencode | 0 |
+| **researcher** | 研究专家 | 文档查询、网络搜索 | read-only | opencode | 1 |
+| **looker** | 多模态分析 | PDF/图片/图表分析 | read-only | opencode | 1 |
 
 ## ⚙️ 参数说明
 
@@ -201,6 +201,5 @@ MIT License
 ## 🙏 致谢
 
 - 原项目 [Oh-My-ClaudeCode](https://github.com/Lynricsy/Oh-My-ClaudeCode)
-- [Claude Code](https://github.com/anthropics/claude-code)
-- [Gemini CLI](https://github.com/google-gemini/gemini-cli)
+- [OpenCode CLI](https://opencode.ai)
 - [Codex CLI](https://github.com/openai/codex)

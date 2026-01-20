@@ -67,24 +67,26 @@ impl AgentType {
     }
 
     /// 获取默认的空闲超时时间（秒）
+    /// 与原项目一致：所有 Agent 默认 300s (5分钟)
     pub fn default_timeout(&self) -> u64 {
         match self {
-            AgentType::Reviewer => 300,
-            AgentType::Advisor => 300,
-            AgentType::Chore => 120,
-            AgentType::Researcher => 120,
-            AgentType::Looker => 120,
+            AgentType::Reviewer => 300,  // codex: 300s
+            AgentType::Advisor => 300,   // opencode: 300s
+            AgentType::Chore => 300,     // opencode: 300s
+            AgentType::Researcher => 300, // opencode: 300s
+            AgentType::Looker => 300,    // opencode: 300s
         }
     }
 
     /// 获取默认的最大执行时长（秒）
+    /// 与原项目一致
     pub fn default_max_duration(&self) -> u64 {
         match self {
-            AgentType::Reviewer => 1800,
-            AgentType::Advisor => 3600,
-            AgentType::Chore => 600,
-            AgentType::Researcher => 3600,
-            AgentType::Looker => 3600,
+            AgentType::Reviewer => 7200, // codex: 2小时
+            AgentType::Advisor => 3600,  // opencode: 1小时
+            AgentType::Chore => 3600,    // opencode: 1小时
+            AgentType::Researcher => 3600, // opencode: 1小时
+            AgentType::Looker => 3600,   // opencode: 1小时
         }
     }
 
@@ -92,10 +94,10 @@ impl AgentType {
     pub fn cli_tool(&self) -> CliTool {
         match self {
             AgentType::Reviewer => CliTool::Codex,
-            AgentType::Advisor => CliTool::Gemini,
-            AgentType::Chore => CliTool::Claude,
-            AgentType::Researcher => CliTool::Gemini,
-            AgentType::Looker => CliTool::Gemini,
+            AgentType::Advisor => CliTool::OpenCode,
+            AgentType::Chore => CliTool::OpenCode,
+            AgentType::Researcher => CliTool::OpenCode,
+            AgentType::Looker => CliTool::OpenCode,
         }
     }
 }
@@ -103,12 +105,12 @@ impl AgentType {
 /// CLI 工具类型
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CliTool {
-    /// Claude CLI
+    /// Claude CLI (Anthropic)
     Claude,
     /// Codex CLI (OpenAI)
     Codex,
-    /// Gemini CLI
-    Gemini,
+    /// OpenCode CLI (https://opencode.ai)
+    OpenCode,
 }
 
 impl CliTool {
@@ -117,7 +119,7 @@ impl CliTool {
         match self {
             CliTool::Claude => "claude",
             CliTool::Codex => "codex",
-            CliTool::Gemini => "gemini",
+            CliTool::OpenCode => "opencode",
         }
     }
 }

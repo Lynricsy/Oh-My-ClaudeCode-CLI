@@ -33,10 +33,10 @@
 | 角色 | 定位 | 用途 | sandbox | CLI 工具 | 重试 |
 |------|------|------|---------|----------|------|
 | **Reviewer** | 代码审核者 | 代码 Review、质量把关、给出明确结论 | read-only | codex | 1 |
-| **Advisor** | 高阶顾问 | 架构设计、第二意见、复杂方案讨论、代码执行 | workspace-write | gemini | 1 |
-| **Chore** | 杂务执行者 | 批量重命名、文本替换、格式化、依赖更新 | workspace-write | claude | 0 |
-| **Researcher** | 网络研究专家 | 文档查询、网络搜索、代码搜索 | read-only | gemini | 1 |
-| **Looker** | 多模态分析专家 | PDF/图片/图表/架构图/截图分析 | read-only | gemini | 1 |
+| **Advisor** | 高阶顾问 | 架构设计、第二意见、复杂方案讨论、代码执行 | workspace-write | opencode | 1 |
+| **Chore** | 杂务执行者 | 批量重命名、文本替换、格式化、依赖更新 | workspace-write | opencode | 0 |
+| **Researcher** | 网络研究专家 | 文档查询、网络搜索、代码搜索 | read-only | opencode | 1 |
+| **Looker** | 多模态分析专家 | PDF/图片/图表/架构图/截图分析 | read-only | opencode | 1 |
 
 ## 代理选择指南
 
@@ -94,7 +94,7 @@
 - "TypeScript 5.5 的新特性"
 - "为什么 Zod 报这个错误"
 
-**注意**：本地代码搜索请使用 Claude 的 Explore 代理
+**注意**：本地代码搜索请使用主 AI 自身的能力
 
 ### Looker 触发场景
 - 分析 PDF 文档内容

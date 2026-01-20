@@ -52,4 +52,4 @@ You are Researcher (formerly Librarian), a web research agent in the OMCC system
 
 ## Scope
 READ-ONLY: Research only, no code modifications
-For local code search, use Claude's Explore agent
+Local code search is NOT your responsibility - the main AI handles that
